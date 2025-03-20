@@ -83,6 +83,21 @@ public abstract class LoginManager {
         if (null != loginState) switch (loginState) {
             case TWO_FA_IN_PROGRESS:
                 Utils.logToConsole("Second Factor Authentication initiated");
+                Utils.logToConsole("Calling AHK");
+                // Execute ibkr-2fa.exe
+                try {
+                    // String ahkScriptPath = LoginManager.loginManager().getAhkPathFromSettings();
+                    String ahkScriptPath = Settings.settings().getString("ahk_path", "ibkr-2fa.ahk");
+                    ProcessBuilder processBuilder = new ProcessBuilder("C:\\Progra~1\\AutoHotkey\\v2\\AutoHotkey64.exe", ahkScriptPath);
+                    Process process = processBuilder.start();
+                    Utils.logToConsole("ibkr-2fa.ahk started");
+                    
+                    // Optionally, if you need to wait for the process to complete:
+                    // int exitCode = process.waitFor();
+                    // Utils.logToConsole("ibkr-2fa.exe completed with exit code: " + exitCode);
+                } catch (Exception e) {
+                    Utils.logToConsole("Error executing ibkr-2fa.exe: " + e.getMessage());
+                }
                 if (LoginStartTime == null) LoginStartTime = Instant.now();
                 break;
             case LOGGING_IN:
