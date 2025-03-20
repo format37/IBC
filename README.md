@@ -1,3 +1,118 @@
+# Overview
+This fork is aimed to automate the 2FA authorization. For this purpose I am using Autohotkey app. As far as I understand, the Autohotkey is available only on windows. If you need to run  this in Linux, you need to find the corresponding alternative and update the following files to work with your app and script:
+* src\ibcalpha\ibc\LoginManager.java: ProcessBuilder processBuilder = new ProcessBuilder("C:\\Progra~1\\AutoHotkey\\v2\\AutoHotkey64.exe", ahkScriptPath);
+* resources/config.ini: ahk_path=C:\\IBC\\ibkr-2fa.ahk
+
+# Installation
+1. Download and install Bluestacks for the Android smartphone emulation with Google Authenticator:
+https://www.bluestacks.com/bluestacks-5.html
+2. Login to account and configure the Google authenticator to show the IB 2FA code. This window can be minimized, but should not be closed.
+
+3. Download and install Autohotkey for Ctrl+C / Ctrl+V action:
+https://www.autohotkey.com/
+
+4. Clone the IBC repo:
+git clone https://github.com/format37/IBC.git
+
+5. Copy files from resources directory to c:\IBC\
+
+6. Create Documents\ibc folder, move config.ini to ibc and encrypt ibc folder
+Define in the config.ini:
+* IbLoginId
+* IbPassword
+* TradingMode
+* ahk_path
+
+7 Update the TWS_MAJOR_VRSN in the following files:
+* StartTWS.bat
+* StartGateway.bat
+For example, if if version is: 10.34.1c then set:
+```
+TWS_MAJOR_VRSN=1034
+```
+
+8. Download and install JDK:
+https://www.oracle.com/cis/java/technologies/downloads/#jdk24-windows
+
+9. Download Apache Ant and extract to
+https://ant.apache.org/bindownload.cgi
+
+10. Rename or remove old IBC:
+```
+mv C:\IBC\IBC.jar C:\IBC\IBC_0.jar 
+```
+
+11. Compile app
+```
+java -cp "C:\apache-ant\lib\ant-launcher.jar" org.apache.tools.ant.launch.Launcher -buildfile C:\Users\alex\Downloads\IBC-master\IBC-master\build.xml
+```
+
+12. Copy JAR app to execution folder:
+```
+cp C:\Users\alex\Downloads\IBC-master\IBC-master\resources\IBC.jar C:\IBC
+```
+
+13. Now you can start TWS
+```
+StartTWS.bat
+```
+
+# Previous doc revision, with compilation:
+Download and install the latest offline TWS: https://www.interactivebrokers.com/en/trading/tws-offline-latest.php
+
+Download IBC: https://github.com/IbcAlpha/IBC/releases
+
+Extract IBC to a new folder: C:\IBC
+
+Create Documents\ibc folder, move config.ini to ibc and encrypt ibc folder
+
+Define
+
+IbLoginId
+
+IbPassword
+
+TradingMode
+
+in the config.ini
+
+Update the TWS_MAJOR_VRSN in the following files:
+
+StartTWS.bat
+
+StartGateway.bat
+
+For example, set
+
+TWS_MAJOR_VRSN=1034
+
+if version is: 10.34.1c
+
+***
+Clone the IBC repo
+git clone https://github.com/IbcAlpha/IBC.git
+
+Donwload and install JDK
+https://www.oracle.com/cis/java/technologies/downloads/#jdk24-windows
+
+Download Apache Ant and extract to
+https://ant.apache.org/bindownload.cgi
+
+Modify app
+C:\Users\alex\Downloads\IBC-master\IBC-master\src\ibcalpha\ibc\LoginManager.java
+
+Rename old IBC:
+mv C:\IBC\IBC.jar C:\IBC\IBC_0.jar 
+
+Compile app
+java -cp "C:\apache-ant\lib\ant-launcher.jar" org.apache.tools.ant.launch.Launcher -buildfile C:\Users\alex\Downloads\IBC-master\IBC-master\build.xml
+
+Copy JAR app to execution folder:
+cp C:\Users\alex\Downloads\IBC-master\IBC-master\resources\IBC.jar C:\IBC
+
+Compile AHK script with AutoHotkey dash and place ibkr-2fa.exe in the C:\IBC folder
+
+# Original documentation
 **Download the
 [latest official release here](https://github.com/IbcAlpha/IBC/releases/latest)**
 
