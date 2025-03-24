@@ -98,13 +98,14 @@ https://www.oracle.com/cis/java/technologies/downloads/#jdk24-windows
 Download Apache Ant and extract to
 https://ant.apache.org/bindownload.cgi
 
-Modify app
+Modify app  
 C:\Users\alex\Downloads\IBC-master\IBC-master\src\ibcalpha\ibc\LoginManager.java
 
 Rename old IBC:
 mv C:\IBC\IBC.jar C:\IBC\IBC_0.jar 
 
-Compile app
+Compile app  
+$env:IBC_BIN = "C:\Jts"  
 java -cp "C:\apache-ant\lib\ant-launcher.jar" org.apache.tools.ant.launch.Launcher -buildfile C:\Users\alex\Downloads\IBC-master\IBC-master\build.xml
 
 Copy JAR app to execution folder:
