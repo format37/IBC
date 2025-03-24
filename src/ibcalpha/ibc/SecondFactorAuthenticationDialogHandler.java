@@ -23,6 +23,7 @@ import java.awt.event.WindowEvent;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JList;
+import javax.swing.JTextField;
 import javax.swing.ListModel;
 
 public class SecondFactorAuthenticationDialogHandler implements WindowHandler {
@@ -55,6 +56,12 @@ public class SecondFactorAuthenticationDialogHandler implements WindowHandler {
                 selectSecondFactorDevice(window);
             } else {
                 LoginManager.loginManager().setLoginState(LoginManager.LoginState.TWO_FA_IN_PROGRESS);
+                
+                // Handle TOTP entry automatically after a short delay
+                // to allow the UI to properly initialize
+                MyScheduledExecutorService.getInstance().schedule(() -> {
+                    enterTOTPCode(window);
+                }, 1, java.util.concurrent.TimeUnit.SECONDS);
             }
         } else if (eventID == WindowEvent.WINDOW_CLOSED) {
             if (LoginManager.loginManager().readonlyLoginRequired()) {
@@ -117,4 +124,132 @@ public class SecondFactorAuthenticationDialogHandler implements WindowHandler {
         Utils.logError("could not find second factor device '" + secondFactorDevice + "' in the list");
     }
     
+    private void enterTOTPCode(Window window) {
+        try {
+            Utils.logToConsole("Entering TOTP code...");
+            
+            // Get TOTP secret from settings
+            String totpSecret = Settings.settings().getString("totp_secret", "");
+            if (totpSecret.isEmpty()) {
+                Utils.logError("No TOTP secret configured in settings");
+                return;
+            }
+            
+            // Generate TOTP code - we already have the value in logs, but we'll recalculate
+            // to ensure we have the current value
+            String totpCode = generateTOTP(totpSecret);
+            Utils.logToConsole("Entering TOTP Code: " + totpCode);
+            
+            // Find input field - usually the first JTextField in the dialog
+            JTextField codeField = SwingUtils.findTextField(window, 0);
+            if (codeField == null) {
+                Utils.logError("Could not find TOTP code input field");
+                return;
+            }
+            
+            // Enter the code
+            codeField.setText(totpCode);
+            
+            // Find and click the Continue/Submit button
+            if (!SwingUtils.clickButton(window, "Continue") && 
+                !SwingUtils.clickButton(window, "Submit") &&
+                !SwingUtils.clickButton(window, "OK")) {
+                Utils.logError("Could not find Continue/Submit button");
+            } else {
+                Utils.logToConsole("TOTP code entered and submitted successfully");
+            }
+        } catch (Exception e) {
+            Utils.logError("Error entering TOTP code: " + e.getMessage());
+            e.printStackTrace(Utils.getErrStream());
+        }
+    }
+    
+    private String generateTOTP(String base32Secret) {
+        try {
+            // Decode the Base32 secret
+            byte[] key = base32Decode(base32Secret);
+            
+            // Get current time and calculate counter value (30 second interval)
+            long counter = System.currentTimeMillis() / 1000 / 30;
+            
+            // Generate OTP using counter
+            return generateOTP(key, counter, 6);
+        } catch (Exception e) {
+            Utils.logToConsole("Error generating TOTP: " + e.getMessage());
+            return "Error";
+        }
+    }
+
+    private String generateOTP(byte[] key, long counter, int digits) throws java.security.NoSuchAlgorithmException, java.security.InvalidKeyException {
+        // Convert counter to byte array
+        byte[] counterBytes = new byte[8];
+        for (int i = 7; i >= 0; i--) {
+            counterBytes[i] = (byte)(counter & 0xff);
+            counter >>= 8;
+        }
+        
+        // Generate HMAC-SHA1
+        javax.crypto.Mac mac = javax.crypto.Mac.getInstance("HmacSHA1");
+        javax.crypto.spec.SecretKeySpec spec = new javax.crypto.spec.SecretKeySpec(key, "HmacSHA1");
+        mac.init(spec);
+        byte[] hash = mac.doFinal(counterBytes);
+        
+        // Dynamic truncation
+        int offset = hash[hash.length - 1] & 0xf;
+        int binary = 
+            ((hash[offset] & 0x7f) << 24) |
+            ((hash[offset + 1] & 0xff) << 16) |
+            ((hash[offset + 2] & 0xff) << 8) |
+            (hash[offset + 3] & 0xff);
+        
+        // Calculate modulus
+        int otp = binary % (int)Math.pow(10, digits);
+        
+        // Convert to string with leading zeros if needed
+        String result = Integer.toString(otp);
+        while (result.length() < digits) {
+            result = "0" + result;
+        }
+        
+        return result;
+    }
+
+    private byte[] base32Decode(String base32) {
+        // Remove padding if present
+        base32 = base32.replaceAll("=", "");
+        
+        // Convert to uppercase for consistency
+        base32 = base32.toUpperCase();
+        
+        // Base32 character set
+        String BASE32_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+        
+        // Prepare output
+        int numBytes = base32.length() * 5 / 8;
+        byte[] output = new byte[numBytes];
+        
+        // Process in chunks of 8 characters (40 bits)
+        int bitsLeft = 0;
+        int currentByte = 0;
+        int outputIndex = 0;
+        
+        for (int i = 0; i < base32.length(); i++) {
+            char c = base32.charAt(i);
+            int value = BASE32_CHARS.indexOf(c);
+            
+            if (value < 0) continue; // Skip non-base32 chars
+            
+            // Add 5 bits to buffer
+            currentByte = (currentByte << 5) | value;
+            bitsLeft += 5;
+            
+            // If we have at least 8 bits, write a byte
+            if (bitsLeft >= 8) {
+                bitsLeft -= 8;
+                output[outputIndex++] = (byte)((currentByte >> bitsLeft) & 0xFF);
+            }
+        }
+        
+        return output;
+    }
 }
